@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Give and Guess Charity</title>
+    <style>
+      :root {
+        --bg-1: #120524;
+        --bg-2: #2a0a4a;
+        --bg-3: #4a0f6b;
+        --gold: #f5c542;
+        --gold-2: #ffe08a;
+        --magenta: #ff2e88;
+        --cyan: #28e0e0;
+        --card: #1a0b33;
+        --card-flip: #3a1560;
+        --text: #fdf6ff;
+        --muted: #b79fd6;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background:
+          radial-gradient(
+            circle at 20% 15%,
+            rgba(255, 46, 136, 0.18),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 85% 80%,
+            rgba(40, 224, 224, 0.15),
+            transparent 50%
+          ),
+          linear-gradient(160deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
+        color: var(--text);
+        overflow: hidden;
+      }
+      .stage {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 28px 20px 10px;
+        overflow-y: auto;
+      }
+      /* glow spotlights */
+      .stage::before,
+      .stage::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(60px);
+        opacity: 0.35;
+        pointer-events: none;
+        z-index: -1;
+      }
+      .stage::before {
+        width: 340px;
+        height: 340px;
+        background: var(--magenta);
+        top: -120px;
+        left: -80px;
+      }
+      .stage::after {
+        width: 380px;
+        height: 380px;
+        background: var(--cyan);
+        bottom: -140px;
+        right: -100px;
+      }
+
+      h1.title {
+        font-size: clamp(36px, 5vw, 56px);
+        margin: 2px 0 10px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        background: linear-gradient(
+          90deg,
+          var(--gold),
+          var(--gold-2) 40%,
+          var(--magenta)
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 0 40px rgba(245, 197, 66, 0.25);
+      }
+
+      /* Scoreboard Styles */
+      .scoreboard {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 20px;
+        z-index: 10;
+      }
+      .team-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        padding: 10px 20px;
+        text-align: center;
+        min-width: 160px;
+        backdrop-filter: blur(5px);
+      }
+      .team-card input {
+        background: transparent;
+        border: none;
+        color: var(--cyan);
+        font-size: 18px;
+        font-weight: 700;
+        text-align: center;
+        font-family: inherit;
+        outline: none;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+        margin-bottom: 5px;
+        width: 100%;
+      }
+      .team-card .score {
+        font-size: 36px;
+        font-weight: 800;
+        color: var(--gold);
+        text-shadow: 0 0 15px rgba(245, 197, 66, 0.3);
+      }
+
+      .roundnav {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .roundnav button {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--muted);
+        padding: 8px 16px;
+        border-radius: 999px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .roundnav button.active {
+        background: linear-gradient(90deg, var(--magenta), #c026d3);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 0 18px rgba(255, 46, 136, 0.5);
+      }
+      .roundnav button:hover {
+        color: #fff;
+      }
+
+      .board {
+        width: min(1180px, 95vw);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.05),
+          rgba(255, 255, 255, 0.02)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 22px;
+        padding: 26px 26px 30px;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      }
+      .question {
+        text-align: center;
+        font-size: clamp(20px, 2.8vw, 32px);
+        font-weight: 700;
+        color: #fff;
+        margin: 0 0 22px;
+        line-height: 1.35;
+      }
+      .question .qnum {
+        color: var(--gold);
+        margin-right: 8px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+      .cell {
+        position: relative;
+        height: 180px;
+        perspective: 900px;
+        cursor: pointer;
+      }
+      .cell-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+        transform-style: preserve-3d;
+      }
+      .cell.flipped .cell-inner {
+        transform: rotateY(180deg);
+      }
+
+      .face {
+        position: absolute;
+        inset: 0;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backface-visibility: hidden;
+        padding: 10px 14px;
+      }
+      .front {
+        background: linear-gradient(160deg, var(--card), #100420);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        flex-direction: column;
+        gap: 4px;
+      }
+      .front .pts {
+        font-size: 80px;
+        font-weight: 800;
+        color: var(--gold);
+        text-shadow: 0 0 24px rgba(245, 197, 66, 0.4);
+      }
+      .front .hint {
+        font-size: 16px;
+        letter-spacing: 3px;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      .front::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 14px;
+        background: repeating-linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.02) 0 10px,
+          transparent 10px 20px
+        );
+        pointer-events: none;
+      }
+      .back {
+        background: linear-gradient(160deg, #ffe9a8, var(--gold));
+        color: #2a0a4a;
+        transform: rotateY(180deg);
+        flex-direction: column;
+        gap: 2px;
+        text-align: center;
+      }
+      .back .ans-text {
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 5px;
+        color: #120524;
+      }
+      .back .ans {
+        font-size: 36px;
+        font-weight: 800;
+      }
+      .back .backpts {
+        font-size: 14px;
+        font-weight: 700;
+        opacity: 0.75;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+
+      .assign-btns {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .assign-btns button {
+        background: #120524;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 6px 14px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .assign-btns button:hover {
+        background: var(--magenta);
+        border-color: var(--magenta);
+      }
+      .awarded-badge {
+        font-size: 13px;
+        color: #120524;
+        margin-top: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .cell:hover .cell-inner {
+        transform: translateY(-3px) rotateX(2deg);
+      }
+      .cell.flipped:hover .cell-inner {
+        transform: rotateY(180deg) translateY(-3px);
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 22px;
+      }
+      .controls button {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: var(--text);
+        padding: 9px 20px;
+        border-radius: 10px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .controls button:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: var(--cyan);
+      }
+      .controls button.primary {
+        background: linear-gradient(90deg, var(--cyan), #4f46e5);
+        border: none;
+        font-weight: 700;
+        color: #0a0a1a;
+      }
+
+      .footer-hint {
+        margin-top: 16px;
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      /* Winner Screen Styles */
+      .winner-screen {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        margin-top: 50px;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 60px;
+        border-radius: 20px;
+        border: 1px solid var(--magenta);
+        box-shadow: 0 0 50px rgba(255, 46, 136, 0.3);
+        backdrop-filter: blur(10px);
+      }
+      .winner-screen h2 {
+        font-size: 64px;
+        color: var(--gold);
+        margin: 10px 0 20px;
+        text-shadow: 0 0 20px rgba(245, 197, 66, 0.4);
+      }
+      .winner-screen .final-stats {
+        font-size: 24px;
+        color: var(--text);
+        line-height: 1.8;
+      }
+      .winner-screen .final-stats span {
+        font-weight: 800;
+        color: var(--cyan);
+      }
+
+      @media (max-width: 520px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .cell {
+          height: 140px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <h1 class="title">Give and Guess Charity</h1>
+
+      <!-- NEW: Scoreboard -->
+      <div class="scoreboard" id="scoreboard">
+        <div class="team-card">
+          <input type="text" id="team1-name" value="Group 1" />
+          <div class="score" id="team1-score">0</div>
+        </div>
+        <div class="team-card">
+          <input type="text" id="team2-name" value="Group 2" />
+          <div class="score" id="team2-score">0</div>
+        </div>
+      </div>
+
+      <div class="roundnav" id="roundnav"></div>
+
+      <div class="board" id="board">
+        <div class="question">
+          <span class="qnum" id="qnum"></span><span id="qtext"></span>
+        </div>
+        <div class="grid" id="grid"></div>
+        <div class="controls">
+          <button onclick="revealAll()">Reveal All</button>
+          <button onclick="resetRound()">Hide All</button>
+          <button class="primary" id="next-btn" onclick="nextRound()">
+            Next Round →
+          </button>
+        </div>
+      </div>
+
+      <!-- NEW: Winner Screen -->
+      <div class="winner-screen" id="winner-screen">
+        <h1 class="title">Game Over!</h1>
+        <h2 id="winner-text"></h2>
+        <div class="final-stats" id="final-stats"></div>
+        <div class="controls" style="margin-top: 30px">
+          <button class="primary" onclick="location.reload()">
+            Play Again ↻
+          </button>
+        </div>
+      </div>
+
+      <div class="footer-hint" id="footer-hint">
+        Click any card to flip and reveal the answer
+      </div>
+    </div>
+
+    <script>
+      const rounds = [
+        {
+          q: "Something students bring to school",
+          answers: [
+            { pts: 40, text: "Backpack" },
+            { pts: 30, text: "Textbook" },
+            { pts: 20, text: "Laptop" },
+            { pts: 10, text: "Charger" },
+          ],
+        },
+        {
+          q: "Reason students might be late for class",
+          answers: [
+            { pts: 40, text: "Traffic" },
+            { pts: 30, text: "Forgot something at home" },
+            { pts: 20, text: "Buying coffee" },
+            { pts: 10, text: "Stayed up too late" },
+          ],
+        },
+        {
+          q: "Something people check as soon as they wake up",
+          answers: [
+            { pts: 40, text: "Time" },
+            { pts: 30, text: "Phone notifications" },
+            { pts: 20, text: "Alarm clock" },
+            { pts: 10, text: "Bathroom" },
+          ],
+        },
+        {
+          q: "Something students do before an exam",
+          answers: [
+            { pts: 40, text: "Prepare cheat note" },
+            { pts: 30, text: "Pray" },
+            { pts: 20, text: "Sleep" },
+            { pts: 10, text: "Study" },
+          ],
+        },
+        {
+          q: "Something people do in the bathroom besides using the toilet",
+          answers: [
+            { pts: 40, text: "Play phone" },
+            { pts: 30, text: "Take a shower" },
+            { pts: 20, text: "Fix hair or style it" },
+            { pts: 10, text: "Brush their teeth" },
+          ],
+        },
+        {
+          q: "Something you should never say on a first date",
+          answers: [
+            { pts: 40, text: "Talk about your ex" },
+            { pts: 30, text: "Talk about marriage" },
+            { pts: 20, text: "Discuss salary" },
+            { pts: 10, text: "Ask about having kids" },
+          ],
+        },
+      ];
+
+      let current = 0;
+      let scores = { 1: 0, 2: 0 }; // NEW: Score tracker
+
+      const roundnav = document.getElementById("roundnav");
+      rounds.forEach((r, i) => {
+        const b = document.createElement("button");
+        b.textContent = "Round " + (i + 1);
+        b.onclick = () => {
+          current = i;
+          render();
+        };
+        roundnav.appendChild(b);
+      });
+
+      function render() {
+        document.getElementById("qnum").textContent =
+          "Round " + (current + 1) + ":";
+        document.getElementById("qtext").textContent = rounds[current].q;
+
+        [...roundnav.children].forEach((b, i) =>
+          b.classList.toggle("active", i === current),
+        );
+
+        // Update next button text if on the last round
+        const nextBtn = document.getElementById("next-btn");
+        if (current === rounds.length - 1) {
+          nextBtn.textContent = "Finish Game 🏆";
+        } else {
+          nextBtn.textContent = "Next Round →";
+        }
+
+        const grid = document.getElementById("grid");
+        grid.innerHTML = "";
+
+        rounds[current].answers.forEach((a) => {
+          const cell = document.createElement("div");
+          cell.className = "cell";
+
+          // Toggle flip state
+          cell.onclick = () => cell.classList.toggle("flipped");
+
+          cell.innerHTML = `
+      <div class="cell-inner">
+        <div class="face front">
+          <div class="pts">?</div>
+          <div class="hint">tap to reveal</div>
+        </div>
+        <div class="face back">
+          <div class="ans-text">${a.text}</div>
+          <div class="ans">${a.pts}</div>
+          <div class="backpts">points</div>
+          <div class="assign-btns">
+             <button onclick="event.stopPropagation(); awardPoints(1, ${a.pts}, this)">+ Group 1</button>
+             <button onclick="event.stopPropagation(); awardPoints(2, ${a.pts}, this)">+ Group 2</button>
+          </div>
+        </div>
+      </div>`;
+          grid.appendChild(cell);
+        });
+      }
+
+      // NEW: Function to handle point awards
+      function awardPoints(teamNum, points, btnElement) {
+        scores[teamNum] += points;
+        document.getElementById(`team${teamNum}-score`).textContent =
+          scores[teamNum];
+
+        // Replace buttons with a label so points aren't awarded twice
+        const container = btnElement.parentElement;
+        const teamName = document.getElementById(`team${teamNum}-name`).value;
+        container.innerHTML = `<div class="awarded-badge">✔ Awarded to ${teamName}</div>`;
+      }
+
+      function revealAll() {
+        document
+          .querySelectorAll(".cell")
+          .forEach((c) => c.classList.add("flipped"));
+      }
+
+      function resetRound() {
+        document
+          .querySelectorAll(".cell")
+          .forEach((c) => c.classList.remove("flipped"));
+      }
+
+      function nextRound() {
+        if (current === rounds.length - 1) {
+          showWinner();
+        } else {
+          current = (current + 1) % rounds.length;
+          render();
+        }
+      }
+
+      // NEW: Show winner screen logic
+      function showWinner() {
+        document.getElementById("board").style.display = "none";
+        document.getElementById("roundnav").style.display = "none";
+        document.getElementById("scoreboard").style.display = "none";
+        document.getElementById("footer-hint").style.display = "none";
+
+        const t1Name = document.getElementById("team1-name").value;
+        const t2Name = document.getElementById("team2-name").value;
+        const s1 = scores[1];
+        const s2 = scores[2];
+
+        let winnerText = "";
+        if (s1 > s2) {
+          winnerText = `${t1Name} Wins!`;
+        } else if (s2 > s1) {
+          winnerText = `${t2Name} Wins!`;
+        } else {
+          winnerText = "It's a Tie!";
+        }
+
+        document.getElementById("winner-text").textContent = winnerText;
+        document.getElementById("final-stats").innerHTML = `
+            ${t1Name}: <span>${s1}</span> pts <br> 
+            ${t2Name}: <span>${s2}</span> pts
+          `;
+
+        document.getElementById("winner-screen").style.display = "flex";
+      }
+
+      render();
+    </script>
+  </body>
+</html>
