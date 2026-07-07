@@ -112,26 +112,52 @@
       }
       .intro-screen h1.title {
         font-size: clamp(48px, 8vw, 80px);
-        margin-bottom: 30px;
+        margin-bottom: 20px;
       }
       .rules-container {
         background: rgba(0, 0, 0, 0.4);
         border: 1px solid rgba(255, 255, 255, 0.15);
-        padding: 30px 40px;
+        padding: 40px 50px;
         border-radius: 20px;
-        max-width: 800px;
+        max-width: 900px;
         text-align: left;
         margin-bottom: 30px;
         box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        backdrop-filter: blur(10px);
+      }
+      .rules-container h2.subtitle {
+        color: var(--cyan);
+        text-align: center;
+        margin-top: 0;
+        margin-bottom: 30px;
+        font-size: 28px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
       }
       .rules-container ul {
-        font-size: 18px;
+        font-size: 20px;
         line-height: 1.6;
         color: var(--text);
-        padding-left: 20px;
+        padding-left: 0;
+        list-style: none;
+        margin: 0;
       }
       .rules-container li {
-        margin-bottom: 12px;
+        margin-bottom: 18px;
+        position: relative;
+        padding-left: 35px;
+      }
+      .rules-container li::before {
+        content: "►";
+        position: absolute;
+        left: 0;
+        top: 2px;
+        color: var(--magenta);
+        font-size: 16px;
+      }
+      .rules-container li strong {
+        color: var(--gold);
+        font-weight: 700;
       }
 
       /* Scoreboard Styles */
@@ -425,27 +451,31 @@
     </style>
   </head>
   <body>
+    <!-- Title Screen -->
     <div class="intro-screen" id="title-screen">
       <h1 class="title">Give and Guess Charity</h1>
       <button class="primary controls" style="padding: 15px 40px; font-size: 20px;" onclick="showRules()">Enter Game</button>
     </div>
 
+    <!-- Rules Screen -->
     <div class="intro-screen" id="rules-screen" style="display: none;">
-      <h1 class="title">Rules</h1>
+      <h1 class="title" style="margin-bottom: 10px;">Game Rule[Page 1]</h1>
       <div class="rules-container">
+        <h2 class="subtitle">OFFICIAL GAME RULES</h2>
         <ul>
-          <li>2 groups have to compete with each other and each group has 6 members.</li>
-          <li>The game has 6 questions.</li>
-          <li>Each question has 5 options with different points.</li>
-          <li>Each group has one chance to answer the question and if they cannot do it, we moved on to the next group.</li>
-          <li>We played until all 5 answers are answered, or moved on to the next question after both groups cannot answer.</li>
-          <li>Each group has 10 seconds after they ring the bell to answer the question.</li>
-          <li>If these two teams tie we are going to do a tie breaker with one more question.</li>
+          <li><strong>2 groups</strong> will compete head-to-head. Each group consists of exactly <strong>6 members</strong>.</li>
+          <li>The core game consists of <strong>6 questions</strong> in total.</li>
+          <li>Each question has <strong>5 options</strong> on the board, each carrying different point values.</li>
+          <li>Each group has exactly <strong>10 seconds</strong> to answer the question after ringing the bell.</li>
+          <li>Groups get <strong>one chance</strong> to answer. If incorrect, the turn immediately passes to the next group.</li>
+          <li>Play continues until all 5 answers are found, or we move on if both groups fail to answer.</li>
+          <li><strong>Tie-Breaker:</strong> If the two teams are tied at the end, we will do a tie-breaker with one final question.</li>
         </ul>
       </div>
       <button class="primary controls" style="padding: 15px 40px; font-size: 20px;" onclick="startGame()">Start Game</button>
     </div>
 
+    <!-- Main Stage Environment -->
     <div class="stage" id="main-stage" style="display: none;">
       <h1 class="title">Give and Guess Charity</h1>
 
