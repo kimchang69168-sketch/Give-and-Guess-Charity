@@ -52,6 +52,7 @@
         padding: 28px 20px 10px;
         overflow-y: auto;
       }
+      
       /* glow spotlights */
       .stage::before,
       .stage::after {
@@ -93,6 +94,44 @@
         background-clip: text;
         color: transparent;
         text-shadow: 0 0 40px rgba(245, 197, 66, 0.25);
+        text-align: center;
+      }
+
+      /* Intro Screens */
+      .intro-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at center, var(--bg-2), var(--bg-1));
+        z-index: 100;
+        padding: 40px;
+        text-align: center;
+      }
+      .intro-screen h1.title {
+        font-size: clamp(48px, 8vw, 80px);
+        margin-bottom: 30px;
+      }
+      .rules-container {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 30px 40px;
+        border-radius: 20px;
+        max-width: 800px;
+        text-align: left;
+        margin-bottom: 30px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      }
+      .rules-container ul {
+        font-size: 18px;
+        line-height: 1.6;
+        color: var(--text);
+        padding-left: 20px;
+      }
+      .rules-container li {
+        margin-bottom: 12px;
       }
 
       /* Scoreboard Styles */
@@ -255,13 +294,13 @@
         text-align: center;
       }
       .back .ans-text {
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 800;
         margin-bottom: 5px;
         color: #120524;
       }
       .back .ans {
-        font-size: 36px;
+        font-size: 32px;
         font-weight: 800;
       }
       .back .backpts {
@@ -320,7 +359,7 @@
         color: var(--text);
         padding: 9px 20px;
         border-radius: 10px;
-        font-size: 13px;
+        font-size: 16px;
         cursor: pointer;
         transition: all 0.2s;
       }
@@ -333,6 +372,8 @@
         border: none;
         font-weight: 700;
         color: #0a0a1a;
+        padding: 12px 28px;
+        font-size: 18px;
       }
 
       .footer-hint {
@@ -384,10 +425,30 @@
     </style>
   </head>
   <body>
-    <div class="stage">
+    <div class="intro-screen" id="title-screen">
+      <h1 class="title">Give and Guess Charity</h1>
+      <button class="primary controls" style="padding: 15px 40px; font-size: 20px;" onclick="showRules()">Enter Game</button>
+    </div>
+
+    <div class="intro-screen" id="rules-screen" style="display: none;">
+      <h1 class="title">Rules</h1>
+      <div class="rules-container">
+        <ul>
+          <li>2 groups have to compete with each other and each group has 6 members.</li>
+          <li>The game has 6 questions.</li>
+          <li>Each question has 5 options with different points.</li>
+          <li>Each group has one chance to answer the question and if they cannot do it, we moved on to the next group.</li>
+          <li>We played until all 5 answers are answered, or moved on to the next question after both groups cannot answer.</li>
+          <li>Each group has 10 seconds after they ring the bell to answer the question.</li>
+          <li>If these two teams tie we are going to do a tie breaker with one more question.</li>
+        </ul>
+      </div>
+      <button class="primary controls" style="padding: 15px 40px; font-size: 20px;" onclick="startGame()">Start Game</button>
+    </div>
+
+    <div class="stage" id="main-stage" style="display: none;">
       <h1 class="title">Give and Guess Charity</h1>
 
-      <!-- NEW: Scoreboard -->
       <div class="scoreboard" id="scoreboard">
         <div class="team-card">
           <input type="text" id="team1-name" value="Group 1" />
@@ -415,7 +476,6 @@
         </div>
       </div>
 
-      <!-- NEW: Winner Screen -->
       <div class="winner-screen" id="winner-screen">
         <h1 class="title">Game Over!</h1>
         <h2 id="winner-text"></h2>
@@ -433,65 +493,84 @@
     </div>
 
     <script>
+      // Navigation Logic for Intro Screens
+      function showRules() {
+        document.getElementById('title-screen').style.display = 'none';
+        document.getElementById('rules-screen').style.display = 'flex';
+      }
+
+      function startGame() {
+        document.getElementById('rules-screen').style.display = 'none';
+        document.getElementById('main-stage').style.display = 'flex';
+        render(); // Render the first round when game officially starts
+      }
+
+      // Updated Survey Data (Sorted by points descending)
       const rounds = [
         {
           q: "Something students bring to school",
           answers: [
-            { pts: 40, text: "Backpack" },
-            { pts: 30, text: "Textbook" },
-            { pts: 20, text: "Laptop" },
-            { pts: 10, text: "Charger" },
+            { pts: 40, text: "Electronic device" },
+            { pts: 30, text: "Reusable water bottle or coffee tumbler" },
+            { pts: 25, text: "Charger" },
+            { pts: 15, text: "Backpack" },
+            { pts: 10, text: "Textbook" },
           ],
         },
         {
           q: "Reason students might be late for class",
           answers: [
-            { pts: 40, text: "Traffic" },
-            { pts: 30, text: "Forgot something at home" },
-            { pts: 20, text: "Buying coffee" },
-            { pts: 10, text: "Stayed up too late" },
+            { pts: 40, text: "Stayed up too late / Overslept" },
+            { pts: 30, text: "Buying coffee" },
+            { pts: 25, text: "Forgot something at home" },
+            { pts: 15, text: "Traffic" },
+            { pts: 10, text: "Getting distracted" },
           ],
         },
         {
-          q: "Something people check as soon as they wake up",
+          q: "Something people do as soon as they wake up",
           answers: [
-            { pts: 40, text: "Time" },
-            { pts: 30, text: "Phone notifications" },
-            { pts: 20, text: "Alarm clock" },
+            { pts: 40, text: "Phone notifications" },
+            { pts: 30, text: "Time" },
+            { pts: 25, text: "Drink water" },
+            { pts: 15, text: "Yawn" },
             { pts: 10, text: "Bathroom" },
           ],
         },
         {
           q: "Something students do before an exam",
           answers: [
-            { pts: 40, text: "Prepare cheat note" },
-            { pts: 30, text: "Pray" },
-            { pts: 20, text: "Sleep" },
-            { pts: 10, text: "Study" },
+            { pts: 40, text: "Sleep" },
+            { pts: 30, text: "Study" },
+            { pts: 25, text: "Prepare cheat note" },
+            { pts: 15, text: "Pray" },
+            { pts: 10, text: "Prepare study supply" },
           ],
         },
         {
           q: "Something people do in the bathroom besides using the toilet",
           answers: [
-            { pts: 40, text: "Play phone" },
-            { pts: 30, text: "Take a shower" },
-            { pts: 20, text: "Fix hair or style it" },
-            { pts: 10, text: "Brush their teeth" },
+            { pts: 40, text: "Clean the bathroom" },
+            { pts: 30, text: "Play phone" },
+            { pts: 25, text: "Fix hair or style it" },
+            { pts: 15, text: "Brush their teeth" },
+            { pts: 10, text: "Take a shower" },
           ],
         },
         {
-          q: "Something you should never say on a first date",
+          q: "Something you should never talk about on a first date",
           answers: [
-            { pts: 40, text: "Talk about your ex" },
-            { pts: 30, text: "Talk about marriage" },
-            { pts: 20, text: "Discuss salary" },
-            { pts: 10, text: "Ask about having kids" },
+            { pts: 40, text: "Talk about Ex" },
+            { pts: 30, text: "Politics" },
+            { pts: 25, text: "Talk about marriage" },
+            { pts: 15, text: "Ask about having kids" },
+            { pts: 10, text: "Discuss salary" },
           ],
         },
       ];
 
       let current = 0;
-      let scores = { 1: 0, 2: 0 }; // NEW: Score tracker
+      let scores = { 1: 0, 2: 0 }; 
 
       const roundnav = document.getElementById("roundnav");
       rounds.forEach((r, i) => {
@@ -513,7 +592,6 @@
           b.classList.toggle("active", i === current),
         );
 
-        // Update next button text if on the last round
         const nextBtn = document.getElementById("next-btn");
         if (current === rounds.length - 1) {
           nextBtn.textContent = "Finish Game 🏆";
@@ -527,8 +605,6 @@
         rounds[current].answers.forEach((a) => {
           const cell = document.createElement("div");
           cell.className = "cell";
-
-          // Toggle flip state
           cell.onclick = () => cell.classList.toggle("flipped");
 
           cell.innerHTML = `
@@ -551,13 +627,11 @@
         });
       }
 
-      // NEW: Function to handle point awards
       function awardPoints(teamNum, points, btnElement) {
         scores[teamNum] += points;
         document.getElementById(`team${teamNum}-score`).textContent =
           scores[teamNum];
 
-        // Replace buttons with a label so points aren't awarded twice
         const container = btnElement.parentElement;
         const teamName = document.getElementById(`team${teamNum}-name`).value;
         container.innerHTML = `<div class="awarded-badge">✔ Awarded to ${teamName}</div>`;
@@ -584,7 +658,6 @@
         }
       }
 
-      // NEW: Show winner screen logic
       function showWinner() {
         document.getElementById("board").style.display = "none";
         document.getElementById("roundnav").style.display = "none";
@@ -602,7 +675,7 @@
         } else if (s2 > s1) {
           winnerText = `${t2Name} Wins!`;
         } else {
-          winnerText = "It's a Tie!";
+          winnerText = "It's a Tie! Time for a Tie Breaker!";
         }
 
         document.getElementById("winner-text").textContent = winnerText;
@@ -613,8 +686,6 @@
 
         document.getElementById("winner-screen").style.display = "flex";
       }
-
-      render();
     </script>
   </body>
 </html>
